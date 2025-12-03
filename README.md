@@ -8,6 +8,7 @@
 - **自动日报**：每天定时自动生成并提交日报（支持 AI 生成内容）
 - **微信通知**：任务成功或失败都会通过 WxPusher 推送通知
 - **GitHub Actions**：完全基于云端运行，无需本地挂机
+- **轻量优化**：不生成本地日志文件和截图，减少存储占用，所有日志通过 GitHub Actions 控制台查看
 
 ## 🚀 快速开始
 
@@ -23,8 +24,8 @@
 |------------|------|
 | `CHECKIN_USERNAME` | 你的登录用户名 |
 | `CHECKIN_PASSWORD` | 你的登录密码 |
-| `WXPUSHER_APP_TOKEN` | WxPusher 应用 Token |
-| `WXPUSHER_UID` | WxPusher 用户 UID |
+| `WXPUSHER_APP_TOKEN` | WxPusher 应用 Token（推荐配置，用于接收通知） |
+| `WXPUSHER_UID` | WxPusher 用户 UID（推荐配置，用于接收通知） |
 
 ### 3. 启用 GitHub Actions
 
@@ -32,6 +33,12 @@
 
 - **自动打卡**：每天北京时间 08:00 和 17:00
 - **自动日报**：每天北京时间 19:00
+
+## 📊 日志查看
+
+- **GitHub Actions 日志**：在仓库的 `Actions` 标签页可以查看每次运行的详细日志
+- **WxPusher 推送**：配置后会收到任务成功或失败的微信推送通知
+- **说明**：为节省 GitHub Actions 存储配额，本项目不会上传日志文件或截图到 Artifacts
 
 ## 🛠️ 本地运行（可选）
 

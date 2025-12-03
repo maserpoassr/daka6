@@ -11,13 +11,12 @@ from datetime import datetime
 from playwright.async_api import async_playwright, Page, Browser
 import logging
 
-# 配置日志
+# 配置日志 - 只输出到控制台，GitHub Actions 会自动记录
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('checkin.log', encoding='utf-8'),
-        logging.StreamHandler()
+        logging.StreamHandler()  # 只保留控制台输出，不生成日志文件
     ]
 )
 logger = logging.getLogger(__name__)
@@ -104,10 +103,8 @@ class AutoCheckin:
             base64_data = src.split(',')[1]
             img_data = base64.b64decode(base64_data)
             
-            # 保存验证码图片用于调试
-            with open('captcha.png', 'wb') as f:
-                f.write(img_data)
-            logger.info("验证码图片已保存到 captcha.png")
+            # 验证码图片不再保存到文件（减少 I/O）
+            # logger.debug("验证码已识别（不保存文件）")
             
             # 使用 OCR 识别验证码
             if ocr:
@@ -232,12 +229,7 @@ class AutoCheckin:
             # 等待页面加载
             await asyncio.sleep(3)
             
-            # 保存当前页面截图用于调试
-            try:
-                await self.page.screenshot(path='page_after_login.png', full_page=True)
-                logger.info("已保存登录后页面截图: page_after_login.png")
-            except:
-                pass
+            # 截图已禁用（减少 I/O）
             
             # 打印当前 URL
             logger.info(f"当前页面 URL: {self.page.url}")
@@ -247,12 +239,6 @@ class AutoCheckin:
             account_list_clicked = False
             
             try:
-                # 根据HTML结构，账号列表是第二个导航项
-                # <div class="nav-item flex-col justify-between active">
-                #   <img src="..." class="nav-icon">
-                #   <span class="nav-text">账号列表</span>
-                # </div>
-                
                 # 方式1: 通过文本查找
                 account_nav = await self.page.wait_for_selector('span.nav-text:has-text("账号列表")', timeout=10000)
                 if account_nav:
@@ -262,12 +248,7 @@ class AutoCheckin:
                     await asyncio.sleep(3)
                     account_list_clicked = True
                     
-                    # 保存点击后的截图
-                    try:
-                        await self.page.screenshot(path='page_after_account_list.png', full_page=True)
-                        logger.info("已保存点击账号列表后页面截图: page_after_account_list.png")
-                    except:
-                        pass
+                    # 截图已禁用（减少 I/O）
             except Exception as e:
                 logger.warning(f"点击账号列表失败，尝试其他方式: {e}")
                 
@@ -290,8 +271,6 @@ class AutoCheckin:
             expand_clicked = False
             
             try:
-                # 根据实际HTML结构查找展开按钮
-                # <div class="expand-icon"><img src="./imgs/Frame.png" alt="展开" class="icon-image"></div>
                 expand_button = await self.page.wait_for_selector('.expand-icon, img[alt="展开"], .icon-image', timeout=10000)
                 if expand_button:
                     await expand_button.click()
@@ -299,12 +278,7 @@ class AutoCheckin:
                     await asyncio.sleep(3)
                     expand_clicked = True
                     
-                    # 保存点击展开后的截图
-                    try:
-                        await self.page.screenshot(path='page_after_expand.png', full_page=True)
-                        logger.info("已保存展开后页面截图: page_after_expand.png")
-                    except:
-                        pass
+                    # 截图已禁用（减少 I/O）
             except Exception as e:
                 logger.warning(f"未找到展开按钮或已展开: {e}")
             
@@ -357,24 +331,14 @@ class AutoCheckin:
             
             # 第四步：点击提交按钮
             if submit_button:
-                try:
-                    # 保存点击前的截图
-                    await self.page.screenshot(path='page_before_submit.png', full_page=True)
-                    logger.info("已保存提交前页面截图: page_before_submit.png")
-                except:
-                    pass
+                # 截图已禁用（减少 I/O）
                 
                 # 点击提交按钮
                 await submit_button.click()
                 logger.info("✓ 已点击'提交打卡'按钮")
                 await asyncio.sleep(3)
                 
-                # 保存点击后的截图
-                try:
-                    await self.page.screenshot(path='page_after_submit.png', full_page=True)
-                    logger.info("已保存提交后页面截图: page_after_submit.png")
-                except:
-                    pass
+                # 截图已禁用（减少 I/O）
                 
                 # 检查是否有成功提示或弹窗
                 try:
@@ -406,18 +370,7 @@ class AutoCheckin:
             else:
                 logger.error("❌ 未找到'提交打卡'按钮")
                 
-                # 保存失败时的完整页面截图
-                try:
-                    await self.page.screenshot(path='page_no_submit_button.png', full_page=True)
-                    logger.info("已保存页面截图: page_no_submit_button.png")
-                    
-                    # 保存页面HTML用于调试
-                    html_content = await self.page.content()
-                    with open('page_content.html', 'w', encoding='utf-8') as f:
-                        f.write(html_content)
-                    logger.info("已保存页面HTML: page_content.html")
-                except:
-                    pass
+                # 截图和 HTML 保存已禁用（减少 I/O）
                 
                 return False
                 
@@ -426,12 +379,7 @@ class AutoCheckin:
             import traceback
             logger.error(traceback.format_exc())
             
-            # 保存错误时的截图
-            try:
-                await self.page.screenshot(path='page_error.png', full_page=True)
-                logger.info("已保存错误页面截图: page_error.png")
-            except:
-                pass
+            # 截图已禁用（减少 I/O）
             
             return False
     
@@ -577,14 +525,44 @@ async def main():
     # 运行打卡
     success = await checkin.run()
     
-    if success:
-        msg = "自动打卡成功！"
-        logger.info(f"========== {msg} ==========")
-        send_notification(wxpusher_app_token, wxpusher_uid, "自动打卡成功", f"用户 {username} 打卡成功\n\n时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    # 获取当前时间信息
+    now = datetime.now()
+    current_hour = now.hour
+    date_str = now.strftime('%Y年%m月%d日')  # 年月日
+    time_str = now.strftime('%H:%M:%S')      # 时分秒
+    
+    # 根据时间判断是上班打卡还是下班打卡
+    # 8:00 打卡时间范围: 0:00-12:00
+    # 17:00 打卡时间范围: 12:00-23:59
+    if current_hour < 12:
+        checkin_type = "上班"
     else:
-        msg = "自动打卡失败！"
-        logger.error(f"========== {msg} ==========")
-        send_notification(wxpusher_app_token, wxpusher_uid, "自动打卡失败", f"用户 {username} 打卡失败，请检查日志。\n\n时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        checkin_type = "下班"
+    
+    if success:
+        title = f"{checkin_type}打卡成功 ✅"
+        message = f"""**{checkin_type}打卡成功！**
+
+📅 **日期**: {date_str}
+⏰ **时间**: {time_str} (北京时间)
+👤 **用户**: {username}
+✨ **状态**: 打卡成功"""
+        
+        logger.info(f"========== {checkin_type}打卡成功！ ==========")
+        send_notification(wxpusher_app_token, wxpusher_uid, title, message)
+    else:
+        title = f"{checkin_type}打卡失败 ❌"
+        message = f"""**{checkin_type}打卡失败！**
+
+📅 **日期**: {date_str}
+⏰ **时间**: {time_str} (北京时间)
+👤 **用户**: {username}
+❌ **状态**: 打卡失败，请检查日志
+
+请及时处理或手动打卡。"""
+        
+        logger.error(f"========== {checkin_type}打卡失败！ ==========")
+        send_notification(wxpusher_app_token, wxpusher_uid, title, message)
         sys.exit(1)
 
 

@@ -12,13 +12,12 @@ from datetime import datetime
 from playwright.async_api import async_playwright, Page, Browser
 import logging
 
-# 配置日志
+# 配置日志 - 只输出到控制台，GitHub Actions 会自动记录
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('daily_report.log', encoding='utf-8'),
-        logging.StreamHandler()
+        logging.StreamHandler()  # 只保留控制台输出，不生成日志文件
     ]
 )
 logger = logging.getLogger(__name__)
@@ -85,10 +84,8 @@ class AutoDailyReport:
             base64_data = src.split(',')[1]
             img_data = base64.b64decode(base64_data)
             
-            # 保存验证码图片用于调试
-            with open('captcha_report.png', 'wb') as f:
-                f.write(img_data)
-            logger.info("验证码图片已保存到 captcha_report.png")
+            # 验证码图片不再保存到文件（减少 I/O）
+            # logger.debug("验证码已识别（不保存文件）")
             
             # 使用 OCR 识别验证码
             if ocr:
@@ -263,12 +260,7 @@ class AutoDailyReport:
             # 等待页面加载
             await asyncio.sleep(3)
             
-            # 保存当前页面截图
-            try:
-                await self.page.screenshot(path='page_after_login_report.png', full_page=True)
-                logger.info("已保存登录后页面截图: page_after_login_report.png")
-            except:
-                pass
+            # 截图已禁用（减少 I/O）
             
             # 第一步：点击"账号列表"导航
             logger.info("第一步：查找并点击'账号列表'导航...")
@@ -353,20 +345,10 @@ class AutoDailyReport:
                     logger.info("✓ 已点击'生成报告'按钮")
                     await asyncio.sleep(3)
                     
-                    # 保存点击后的截图
-                    try:
-                        await self.page.screenshot(path='page_after_report_button.png', full_page=True)
-                        logger.info("已保存点击生成报告后页面截图: page_after_report_button.png")
-                    except:
-                        pass
+                    # 截图已禁用（减少 I/O）
                 else:
                     logger.error("未找到'生成报告'按钮（尝试了所有选择器）")
-                    # 保存调试截图
-                    try:
-                        await self.page.screenshot(path='page_no_report_button.png', full_page=True)
-                        logger.info("已保存调试截图: page_no_report_button.png")
-                    except:
-                        pass
+                    # 截图已禁用（减少 I/O）
                     return False
                     
             except Exception as e:
@@ -438,12 +420,7 @@ class AutoDailyReport:
             try:
                 submit_button = await self.page.wait_for_selector('button.submit-btn:has-text("提交报告")', timeout=10000)
                 if submit_button:
-                    # 保存提交前的截图
-                    try:
-                        await self.page.screenshot(path='page_before_report_submit.png', full_page=True)
-                        logger.info("已保存提交前页面截图: page_before_report_submit.png")
-                    except:
-                        pass
+                    # 截图已禁用（减少 I/O）
                     
                     await submit_button.click()
                     logger.info("✓ 已点击'提交报告'按钮")
@@ -455,12 +432,7 @@ class AutoDailyReport:
                         if success_toast:
                             logger.info("✅ 报告提交成功！")
                             
-                            # 保存成功后的截图
-                            try:
-                                await self.page.screenshot(path='page_report_success.png', full_page=True)
-                                logger.info("已保存提交成功页面截图: page_report_success.png")
-                            except:
-                                pass
+                            # 截图已禁用（减少 I/O）
                             
                             return True
                     except:
@@ -476,12 +448,7 @@ class AutoDailyReport:
             import traceback
             logger.error(traceback.format_exc())
             
-            # 保存错误时的截图
-            try:
-                await self.page.screenshot(path='page_report_error.png', full_page=True)
-                logger.info("已保存错误页面截图: page_report_error.png")
-            except:
-                pass
+            # 截图已禁用（减少 I/O）
             
             return False
     
@@ -636,14 +603,35 @@ async def main():
     # 运行日报
     success = await report.run()
     
+    # 获取当前时间信息
+    now = datetime.now()
+    date_str = now.strftime('%Y年%m月%d日')  # 年月日
+    time_str = now.strftime('%H:%M:%S')      # 时分秒
+    
     if success:
-        msg = "自动日报提交成功！"
-        logger.info(f"========== {msg} ==========")
-        send_notification(wxpusher_app_token, wxpusher_uid, "自动日报成功", f"用户 {username} 日报提交成功\n\n时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        title = "日报完成 ✅"
+        message = f"""**日报提交完成！**
+
+📅 **日期**: {date_str}
+⏰ **时间**: {time_str} (北京时间)
+👤 **用户**: {username}
+✨ **状态**: 日报已成功提交"""
+        
+        logger.info(f"========== 日报完成！ ==========")
+        send_notification(wxpusher_app_token, wxpusher_uid, title, message)
     else:
-        msg = "自动日报提交失败！"
-        logger.error(f"========== {msg} ==========")
-        send_notification(wxpusher_app_token, wxpusher_uid, "自动日报失败", f"用户 {username} 日报提交失败，请检查日志。\n\n时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        title = "日报未完成 ❌"
+        message = f"""**日报提交失败！**
+
+📅 **日期**: {date_str}
+⏰ **时间**: {time_str} (北京时间)
+👤 **用户**: {username}
+❌ **状态**: 日报提交失败，请检查日志
+
+请及时处理或手动提交日报。"""
+        
+        logger.error(f"========== 日报未完成！ ==========")
+        send_notification(wxpusher_app_token, wxpusher_uid, title, message)
         sys.exit(1)
 
 

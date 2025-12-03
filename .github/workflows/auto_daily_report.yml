@@ -38,14 +38,3 @@ jobs:
         WXPUSHER_UID: ${{ secrets.WXPUSHER_UID }}
       run: |
         python auto_daily_report.py
-    
-    - name: 上传日志
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: daily-report-logs-${{ github.run_number }}
-        path: |
-          daily_report.log
-          captcha_report.png
-          page_*.png
-        retention-days: 7
