@@ -72,6 +72,66 @@
 - `auto_daily_report.py`: 自动日报核心脚本
 - `.github/workflows/`: 定时任务配置
 
+## 🐳 Docker 容器部署
+
+### 镜像地址
+
+```
+ghcr.io/你的用户名/仓库名:latest
+```
+
+### 本地运行测试
+
+```bash
+# 拉取镜像
+docker pull ghcr.io/你的用户名/仓库名:latest
+
+# 运行打卡
+docker run --rm \
+  -e CHECKIN_USERNAME=你的用户名 \
+  -e CHECKIN_PASSWORD=你的密码 \
+  -e WXPUSHER_APP_TOKEN=你的Token \
+  -e WXPUSHER_UID=你的UID \
+  ghcr.io/你的用户名/仓库名:latest auto_checkin.py
+
+# 运行日报
+docker run --rm \
+  -e CHECKIN_USERNAME=你的用户名 \
+  -e CHECKIN_PASSWORD=你的密码 \
+  -e WXPUSHER_APP_TOKEN=你的Token \
+  -e WXPUSHER_UID=你的UID \
+  ghcr.io/你的用户名/仓库名:latest auto_daily_report.py
+```
+
+### Leaflow 无状态容器配置
+
+| 配置项 | 值 |
+|--------|-----|
+| 镜像地址 | `ghcr.io/你的用户名/仓库名:latest` |
+| CPU | 1核 |
+| 内存 | 2GB |
+| 环境变量 | `CHECKIN_USERNAME`, `CHECKIN_PASSWORD`, `WXPUSHER_APP_TOKEN`, `WXPUSHER_UID` |
+| 命令参数 | `auto_checkin.py` 或 `auto_daily_report.py` |
+| 调度 | 08:00/17:00(打卡), 19:00(日报) |
+
+### 环境变量说明
+
+| 变量名 | 必填 | 说明 |
+|--------|------|------|
+| `CHECKIN_USERNAME` | ✅ | 登录用户名 |
+| `CHECKIN_PASSWORD` | ✅ | 登录密码 |
+| `WXPUSHER_APP_TOKEN` | ❌ | WxPusher 应用 Token |
+| `WXPUSHER_UID` | ❌ | WxPusher 用户 UID |
+
+### 故障排除
+
+| 问题 | 解决方案 |
+|------|----------|
+| Playwright 崩溃 | 确保容器内存 ≥ 2GB |
+| OCR 失败 | ddddocr 已包含在镜像中 |
+| 环境变量未识别 | 检查 `-e` 参数格式 |
+| 镜像拉取失败 | 确认 GHCR 镜像权限（Public 仓库免费） |
+
 ## ⚠️ 免责声明
 
 本脚本仅供学习交流使用，请遵守相关规定。
