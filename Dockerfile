@@ -1,7 +1,11 @@
 FROM mcr.microsoft.com/devcontainers/python:3.11-bookworm
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    TZ=Asia/Shanghai
+
+# 设置容器时区为北京时间
+RUN ln -snf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && echo Asia/Shanghai > /etc/timezone
 
 # 安装系统依赖
 RUN apt-get update && apt-get install -y \
