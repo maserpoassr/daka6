@@ -23,8 +23,9 @@ WORKDIR /app
 # 先复制依赖清单便于缓存
 COPY requirements.txt .
 
-# 升级 pip 并安装 Python 依赖
+# 升级 pip 并安装 Python 依赖（使用国内镜像源）
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install -i https://pypi.tsinghua.edu.cn/simple --no-cache-dir -r requirements.txt || \
     pip install --no-cache-dir -r requirements.txt
 
 # 安装 Playwright 运行时依赖与浏览器
