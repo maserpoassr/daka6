@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxcomposite1 libxdamage1 libxrandr2 libgbm1 libasound2 \
     fonts-liberation libnspr4 libatk1.0-0 libatspi2.0-0 \
     libxshmfence1 libgtk-3-0 libx11-xcb1 \
+    libgomp1 libglib2.0-0 libsm6 libxrender1 libxext6 libgl1 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -22,8 +23,9 @@ WORKDIR /app
 # 先复制依赖清单便于缓存
 COPY requirements.txt .
 
-# 安装 Python 依赖
-RUN pip install --no-cache-dir -r requirements.txt
+# 升级 pip 并安装 Python 依赖
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r requirements.txt
 
 # 安装 Playwright 运行时依赖与浏览器
 RUN python -m playwright install-deps chromium && python -m playwright install chromium
