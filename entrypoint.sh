@@ -2,7 +2,8 @@
 set -e
 
 # 运行模式: scheduler (定时调度) / once (一次性运行)
-MODE=${1:-scheduler}
+# 优先命令行参数，其次 RUN_MODE 环境变量，默认 scheduler
+MODE=${1:-${RUN_MODE:-scheduler}}
 SCRIPT=${2:-auto_checkin.py}
 
 echo "🚀 启动容器"
@@ -35,7 +36,8 @@ EOF
 # 显示配置信息
 echo "📋 环境变量检查："
 echo "  用户名: ${CHECKIN_USERNAME:0:3}***"
-echo "  WxPusher: $( [ -n "$WXPUSHER_APP_TOKEN" ] && echo "已配置" || echo "未配置" )"
+WXPUSHER_STATUS=$([ -n "$WXPUSHER_APP_TOKEN" ] && echo "已配置" || echo "未配置")
+echo "  WxPusher: $WXPUSHER_STATUS"
 
 # 显示当前时间
 echo "⏰ 当前时间: $(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S') (北京时间)"

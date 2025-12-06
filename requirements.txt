@@ -1,4 +1,4 @@
-playwright>=1.40.0
-ddddocr
-requests
-apscheduler>=3.10.0
+playwright==1.40.0
+ddddocr==1.4.7
+requests==2.31.0
+apscheduler==3.10.4
