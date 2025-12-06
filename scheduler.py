@@ -53,10 +53,13 @@ def acquire_lock(task_name: str) -> bool:
         True: 成功获取锁, False: 锁已被占用
     """
     lock_file = get_lock_file(task_name)
+    fd = None
     try:
         fd = os.open(str(lock_file), os.O_CREAT | os.O_RDWR)
         fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        # 写入 PID
+        # 写入 PID（先清空旧内容）
+        os.ftruncate(fd, 0)
+        os.lseek(fd, 0, os.SEEK_SET)
         os.write(fd, str(os.getpid()).encode())
         os.fsync(fd)
         LOCK_FDS[task_name] = fd
@@ -64,6 +67,8 @@ def acquire_lock(task_name: str) -> bool:
         return True
     except (IOError, OSError):
         logger.warning(f"⚠️ 任务 {task_name} 正在运行中，跳过本次执行")
+        if fd is not None:
+            os.close(fd)
         return False
 
 
