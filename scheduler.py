@@ -11,6 +11,7 @@ import fcntl
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 import logging
+from typing import Dict
 
 # 北京时区 (UTC+8)
 BEIJING_TZ = timezone(timedelta(hours=8))
@@ -29,6 +30,9 @@ LOCK_DIR.mkdir(exist_ok=True)
 
 # 今日执行记录文件
 DAILY_RECORD_FILE = LOCK_DIR / 'daily_record.txt'
+
+# 记录锁对应的文件描述符，便于正确释放
+LOCK_FDS: Dict[str, int] = {}
 
 
 def get_today_date() -> str:
@@ -49,16 +53,22 @@ def acquire_lock(task_name: str) -> bool:
         True: 成功获取锁, False: 锁已被占用
     """
     lock_file = get_lock_file(task_name)
+    fd = None
     try:
         fd = os.open(str(lock_file), os.O_CREAT | os.O_RDWR)
         fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        # 写入 PID
+        # 写入 PID（先清空旧内容）
+        os.ftruncate(fd, 0)
+        os.lseek(fd, 0, os.SEEK_SET)
         os.write(fd, str(os.getpid()).encode())
         os.fsync(fd)
+        LOCK_FDS[task_name] = fd
         logger.info(f"✓ 获取锁成功: {task_name}")
         return True
     except (IOError, OSError):
         logger.warning(f"⚠️ 任务 {task_name} 正在运行中，跳过本次执行")
+        if fd is not None:
+            os.close(fd)
         return False
 
 
@@ -66,6 +76,10 @@ def release_lock(task_name: str):
     """释放任务锁"""
     lock_file = get_lock_file(task_name)
     try:
+        fd = LOCK_FDS.pop(task_name, None)
+        if fd is not None:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+            os.close(fd)
         lock_file.unlink(missing_ok=True)
         logger.info(f"✓ 释放锁: {task_name}")
     except Exception as e:
