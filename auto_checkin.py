@@ -550,9 +550,9 @@ async def main():
     time_str = now_beijing.strftime('%H:%M:%S')      # 时分秒
     
     # 根据北京时间判断是上班打卡还是下班打卡
-    # 8:00 打卡时间范围: 0:00-12:00
-    # 17:00 打卡时间范围: 12:00-23:59
-    if current_hour < 12:
+    # 上班打卡时间范围: 6:00 - 16:59
+    # 下班打卡时间范围: 17:00 - 23:59 (以及 0:00 - 5:59 视为前一天下班)
+    if 6 <= current_hour < 17:
         checkin_type = "上班"
     else:
         checkin_type = "下班"

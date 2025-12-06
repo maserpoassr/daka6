@@ -652,6 +652,13 @@ async def main():
     date_str = now_beijing.strftime('%Y年%m月%d日')  # 年月日
     time_str = now_beijing.strftime('%H:%M:%S')      # 时分秒
     
+    # 获取当前小时和分钟，判断是否在日报时间范围内（17:30 以后）
+    current_hour = now_beijing.hour
+    current_minute = now_beijing.minute
+    
+    # 日报时间范围: 17:30 以后
+    is_report_time = (current_hour > 17) or (current_hour == 17 and current_minute >= 30)
+    
     if success:
         if report.report_already_submitted:
             title = "日报已完成 ✅"
@@ -662,8 +669,8 @@ async def main():
 👤 **用户**: {username}
 ✨ **状态**: 日报已完成，无需重复提交"""
         else:
-            title = "日报完成 ✅"
-            message = f"""**日报提交完成！**
+            title = "日报提交成功 ✅"
+            message = f"""**日报提交成功！**
 
 📅 **日期**: {date_str}
 ⏰ **时间**: {time_str} (北京时间)
@@ -673,7 +680,7 @@ async def main():
         logger.info(f"========== 日报完成！ ==========")
         send_notification(wxpusher_app_token, wxpusher_uid, title, message)
     else:
-        title = "日报未完成 ❌"
+        title = "日报提交失败 ❌"
         message = f"""**日报提交失败！**
 
 📅 **日期**: {date_str}
