@@ -23,6 +23,9 @@ COPY requirements.txt .
 COPY *.py ./
 COPY entrypoint.sh ./
 
+# 默认使用定时调度模式
+ENV RUN_MODE=scheduler
+
 # 安装 Python 依赖
 RUN pip install --no-cache-dir -r requirements.txt
 

@@ -1,136 +1,137 @@
-# 自动打卡与日报系统
+# 自动打卡与日报系统 (容器版)
 
-这是一个基于 Playwright 的自动化脚本，用于自动完成每日打卡和日报提交，并支持 WxPusher 微信通知。
+基于 Playwright 的自动化脚本，支持容器内定时调度，解决外部平台调度不准确的问题。
 
 ## ✨ 功能特点
 
+- **内置定时调度**：使用 APScheduler 在容器内按北京时间准时运行
+- **防重复运行**：锁机制 + 每日记录，防止重复打卡
 - **自动打卡**：每天定时自动登录并完成打卡
-- **自动日报**：每天定时自动生成并提交日报（支持 AI 生成内容）
-- **微信通知**：任务成功或失败都会通过 WxPusher 推送通知
-- **GitHub Actions**：完全基于云端运行，无需本地挂机
-- **轻量优化**：不生成本地日志文件和截图，减少存储占用，所有日志通过 GitHub Actions 控制台查看
+- **自动日报**：每天定时自动生成并提交日报（支持 AI 生成）
+- **微信通知**：通过 WxPusher 推送任务结果
 
 ## 🚀 快速开始
 
-### 1. Fork 本仓库
+### 运行模式
 
-将本项目 Fork 到你的 GitHub 账号。
+容器支持两种运行模式：
 
-### 2. 配置 Secrets
+| 模式 | 说明 | 适用场景 |
+|------|------|----------|
+| `scheduler` | 定时调度模式（默认） | 容器持续运行，按北京时间准时执行 |
+| `once` | 一次性运行模式 | 外部调度触发，运行后退出 |
 
-在仓库的 `Settings` -> `Secrets and variables` -> `Actions` 中添加以下 Secrets：
+### 推荐：定时调度模式
 
-| Secret 名称 | 说明 |
-|------------|------|
-| `CHECKIN_USERNAME` | 你的登录用户名 |
-| `CHECKIN_PASSWORD` | 你的登录密码 |
-| `WXPUSHER_APP_TOKEN` | WxPusher 应用 Token（推荐配置，用于接收通知） |
-| `WXPUSHER_UID` | WxPusher 用户 UID（推荐配置，用于接收通知） |
-
-### 3. 启用 GitHub Actions
-
-进入 `Actions` 标签页，启用工作流。系统将按照以下时间自动运行：
-
-- **自动打卡**：每天北京时间 08:00 和 17:00
-- **自动日报**：每天北京时间 19:00
-
-## 📊 日志查看
-
-- **GitHub Actions 日志**：在仓库的 `Actions` 标签页可以查看每次运行的详细日志
-- **WxPusher 推送**：配置后会收到任务成功或失败的微信推送通知
-- **说明**：为节省 GitHub Actions 存储配额，本项目不会上传日志文件或截图到 Artifacts
-
-## 🛠️ 本地运行（可选）
-
-如果你需要在本地运行：
-
-1. 安装依赖：
-   ```bash
-   pip install -r requirements.txt
-   playwright install chromium
-   ```
-
-2. 配置 `config.json`（复制 `config.json.example`）：
-   ```json
-   {
-     "username": "你的用户名",
-     "password": "你的密码",
-     "wxpusher_app_token": "你的Token",
-     "wxpusher_uid": "你的UID"
-   }
-   ```
-
-3. 运行脚本：
-   ```bash
-   python auto_checkin.py      # 运行打卡
-   python auto_daily_report.py # 运行日报
-   ```
-
-## 📝 文件说明
-
-- `auto_checkin.py`: 自动打卡核心脚本
-- `auto_daily_report.py`: 自动日报核心脚本
-- `.github/workflows/`: 定时任务配置
-
-## 🐳 Docker 容器部署
-
-### 镜像地址
-
-```
-ghcr.io/你的用户名/仓库名:latest
-```
-
-### 本地运行测试
+容器持续运行，内置调度器按北京时间准时执行任务，不依赖外部平台的调度。
 
 ```bash
-# 拉取镜像
-docker pull ghcr.io/你的用户名/仓库名:latest
-
-# 运行打卡
-docker run --rm \
+docker run -d --name daka \
   -e CHECKIN_USERNAME=你的用户名 \
   -e CHECKIN_PASSWORD=你的密码 \
   -e WXPUSHER_APP_TOKEN=你的Token \
   -e WXPUSHER_UID=你的UID \
-  ghcr.io/你的用户名/仓库名:latest auto_checkin.py
+  ghcr.io/你的用户名/仓库名:latest scheduler
+```
+
+默认调度时间（北京时间）：
+- 上班打卡：08:00
+- 下班打卡：17:00
+- 自动日报：17:30
+
+### 自定义调度时间
+
+通过环境变量自定义：
+
+```bash
+docker run -d --name daka \
+  -e CHECKIN_USERNAME=你的用户名 \
+  -e CHECKIN_PASSWORD=你的密码 \
+  -e MORNING_CHECKIN_HOUR=7 \
+  -e MORNING_CHECKIN_MINUTE=50 \
+  -e EVENING_CHECKIN_HOUR=18 \
+  -e EVENING_CHECKIN_MINUTE=0 \
+  -e DAILY_REPORT_HOUR=18 \
+  -e DAILY_REPORT_MINUTE=30 \
+  ghcr.io/你的用户名/仓库名:latest scheduler
+```
+
+### 一次性运行模式
+
+如果你仍想使用外部调度（如 Leaflow 的定时任务），可以使用一次性模式：
+
+```bash
+# 运行打卡
+docker run --rm \
+  -e CHECKIN_USERNAME=你的用户名 \
+  -e CHECKIN_PASSWORD=你的密码 \
+  ghcr.io/你的用户名/仓库名:latest once auto_checkin.py
 
 # 运行日报
 docker run --rm \
   -e CHECKIN_USERNAME=你的用户名 \
   -e CHECKIN_PASSWORD=你的密码 \
-  -e WXPUSHER_APP_TOKEN=你的Token \
-  -e WXPUSHER_UID=你的UID \
-  ghcr.io/你的用户名/仓库名:latest auto_daily_report.py
+  ghcr.io/你的用户名/仓库名:latest once auto_daily_report.py
+
+# 快捷方式
+docker run --rm -e ... ghcr.io/.../...:latest checkin
+docker run --rm -e ... ghcr.io/.../...:latest report
 ```
 
-### Leaflow 无状态容器配置
+## 🐳 Leaflow 部署
+
+### 方案一：定时调度模式（推荐）
+
+创建一个持续运行的容器：
 
 | 配置项 | 值 |
 |--------|-----|
 | 镜像地址 | `ghcr.io/你的用户名/仓库名:latest` |
 | CPU | 1核 |
 | 内存 | 2GB |
-| 环境变量 | `CHECKIN_USERNAME`, `CHECKIN_PASSWORD`, `WXPUSHER_APP_TOKEN`, `WXPUSHER_UID` |
-| 命令参数 | `auto_checkin.py` 或 `auto_daily_report.py` |
-| 调度 | 08:00/17:00(打卡), 19:00(日报) |
+| 命令参数 | `scheduler` |
+| 环境变量 | 见下表 |
 
-### 环境变量说明
+容器会持续运行，内部调度器按北京时间准时执行任务。
 
-| 变量名 | 必填 | 说明 |
-|--------|------|------|
-| `CHECKIN_USERNAME` | ✅ | 登录用户名 |
-| `CHECKIN_PASSWORD` | ✅ | 登录密码 |
-| `WXPUSHER_APP_TOKEN` | ❌ | WxPusher 应用 Token |
-| `WXPUSHER_UID` | ❌ | WxPusher 用户 UID |
+### 方案二：一次性模式
 
-### 故障排除
+如果 Leaflow 不支持持续运行容器，使用一次性模式：
 
-| 问题 | 解决方案 |
-|------|----------|
-| Playwright 崩溃 | 确保容器内存 ≥ 2GB |
-| OCR 失败 | ddddocr 已包含在镜像中 |
-| 环境变量未识别 | 检查 `-e` 参数格式 |
-| 镜像拉取失败 | 确认 GHCR 镜像权限（Public 仓库免费） |
+| 配置项 | 值 |
+|--------|-----|
+| 命令参数 | `checkin` 或 `report` |
+| 调度 | 由 Leaflow 平台设置 |
+
+## 📋 环境变量
+
+| 变量名 | 必填 | 默认值 | 说明 |
+|--------|------|--------|------|
+| `CHECKIN_USERNAME` | ✅ | - | 登录用户名 |
+| `CHECKIN_PASSWORD` | ✅ | - | 登录密码 |
+| `WXPUSHER_APP_TOKEN` | ❌ | - | WxPusher 应用 Token |
+| `WXPUSHER_UID` | ❌ | - | WxPusher 用户 UID |
+| `MORNING_CHECKIN_HOUR` | ❌ | 8 | 上班打卡小时 |
+| `MORNING_CHECKIN_MINUTE` | ❌ | 0 | 上班打卡分钟 |
+| `EVENING_CHECKIN_HOUR` | ❌ | 17 | 下班打卡小时 |
+| `EVENING_CHECKIN_MINUTE` | ❌ | 0 | 下班打卡分钟 |
+| `DAILY_REPORT_HOUR` | ❌ | 17 | 日报提交小时 |
+| `DAILY_REPORT_MINUTE` | ❌ | 30 | 日报提交分钟 |
+
+## 🔧 防重复运行机制
+
+容器内置防重复运行机制：
+
+1. **文件锁**：同一任务同时只能运行一个实例
+2. **每日记录**：成功执行后记录，当天不再重复执行
+3. **状态检查**：日报脚本会检查是否已提交
+
+## 📝 文件说明
+
+- `scheduler.py`: 定时调度器（核心）
+- `auto_checkin.py`: 自动打卡脚本
+- `auto_daily_report.py`: 自动日报脚本
+- `entrypoint.sh`: 容器入口脚本
 
 ## ⚠️ 免责声明
 

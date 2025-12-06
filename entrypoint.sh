@@ -1,13 +1,20 @@
 #!/bin/bash
 set -e
 
-SCRIPT=${1:-auto_checkin.py}
-echo "🚀 启动容器，运行脚本: $SCRIPT"
+# 运行模式: scheduler (定时调度) / once (一次性运行)
+MODE=${1:-scheduler}
+SCRIPT=${2:-auto_checkin.py}
+
+echo "🚀 启动容器"
+echo "📋 运行模式: $MODE"
 
 # 检测 GitHub Actions 环境（兼容现有日志逻辑）
 if [ "$GITHUB_ACTIONS" = "true" ]; then
     export GITHUB_ACTIONS=true
 fi
+
+# 标记容器环境
+export CONTAINER_ENV=true
 
 # 检查必需环境变量
 if [ -z "$CHECKIN_USERNAME" ] || [ -z "$CHECKIN_PASSWORD" ]; then
@@ -16,8 +23,7 @@ if [ -z "$CHECKIN_USERNAME" ] || [ -z "$CHECKIN_PASSWORD" ]; then
 fi
 
 # 生成 config.json（兼容现有代码）
-if [ ! -f config.json ]; then
-    cat > config.json << EOF
+cat > config.json << EOF
 {
   "username": "$CHECKIN_USERNAME",
   "password": "$CHECKIN_PASSWORD",
@@ -25,11 +31,47 @@ if [ ! -f config.json ]; then
   "wxpusher_uid": "${WXPUSHER_UID:-}"
 }
 EOF
-fi
 
-# 运行指定脚本
+# 显示配置信息
 echo "📋 环境变量检查："
 echo "  用户名: ${CHECKIN_USERNAME:0:3}***"
 echo "  WxPusher: $( [ -n "$WXPUSHER_APP_TOKEN" ] && echo "已配置" || echo "未配置" )"
-echo "📅 开始执行: python $SCRIPT"
-exec python "$SCRIPT"
+
+# 显示当前时间
+echo "⏰ 当前时间: $(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S') (北京时间)"
+
+case "$MODE" in
+    scheduler)
+        # 定时调度模式 - 容器持续运行，按北京时间准时执行任务
+        echo "📅 启动定时调度器..."
+        echo "💡 默认调度时间 (北京时间):"
+        echo "   - 上班打卡: ${MORNING_CHECKIN_HOUR:-08}:${MORNING_CHECKIN_MINUTE:-00}"
+        echo "   - 下班打卡: ${EVENING_CHECKIN_HOUR:-17}:${EVENING_CHECKIN_MINUTE:-00}"
+        echo "   - 自动日报: ${DAILY_REPORT_HOUR:-17}:${DAILY_REPORT_MINUTE:-30}"
+        exec python scheduler.py
+        ;;
+    once)
+        # 一次性运行模式 - 运行指定脚本后退出
+        echo "📅 一次性运行: python $SCRIPT"
+        exec python "$SCRIPT"
+        ;;
+    checkin)
+        # 快捷方式: 运行打卡
+        echo "📅 运行打卡脚本"
+        exec python auto_checkin.py
+        ;;
+    report)
+        # 快捷方式: 运行日报
+        echo "📅 运行日报脚本"
+        exec python auto_daily_report.py
+        ;;
+    *)
+        echo "❌ 未知模式: $MODE"
+        echo "可用模式:"
+        echo "  scheduler - 定时调度模式（推荐，容器持续运行）"
+        echo "  once      - 一次性运行模式"
+        echo "  checkin   - 快捷运行打卡"
+        echo "  report    - 快捷运行日报"
+        exit 1
+        ;;
+esac
