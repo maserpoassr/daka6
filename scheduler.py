@@ -208,6 +208,9 @@ def start_scheduler():
     
     scheduler = BlockingScheduler(timezone='Asia/Shanghai')
     
+    # 检查是否启用启动时立即运行（用于测试）
+    run_on_startup = os.getenv('RUN_ON_STARTUP', 'false').lower() == 'true'
+    
     # 从环境变量读取调度时间（可自定义）
     morning_checkin_hour = int(os.getenv('MORNING_CHECKIN_HOUR', '8'))
     morning_checkin_minute = int(os.getenv('MORNING_CHECKIN_MINUTE', '0'))
@@ -261,7 +264,25 @@ def start_scheduler():
     logger.info("  MORNING_CHECKIN_HOUR, MORNING_CHECKIN_MINUTE")
     logger.info("  EVENING_CHECKIN_HOUR, EVENING_CHECKIN_MINUTE")
     logger.info("  DAILY_REPORT_HOUR, DAILY_REPORT_MINUTE")
+    logger.info("  RUN_ON_STARTUP=true (启动时立即运行一次，用于测试)")
     logger.info("=" * 50)
+    
+    # 启动时立即运行一次（用于测试）
+    if run_on_startup:
+        logger.info("🔄 启动时立即运行一次...")
+        current_hour = now.hour
+        
+        # 根据当前时间判断运行哪个任务
+        if 6 <= current_hour < 17:
+            logger.info("→ 运行上班打卡")
+            run_async_task(run_checkin_task, 'morning')
+        else:
+            logger.info("→ 运行下班打卡")
+            run_async_task(run_checkin_task, 'evening')
+        
+        logger.info("→ 运行日报")
+        run_async_task(run_daily_report_task)
+        logger.info("✅ 启动时任务已完成")
     
     # 优雅退出处理
     def signal_handler(signum, frame):
