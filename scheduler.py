@@ -279,4 +279,13 @@ def start_scheduler():
 
 
 if __name__ == '__main__':
-    start_scheduler()
+    try:
+        logger.info("=" * 50)
+        logger.info("🚀 容器启动 - 定时调度器模式")
+        logger.info("=" * 50)
+        start_scheduler()
+    except Exception as e:
+        logger.error(f"❌ 调度器启动失败: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        sys.exit(1)

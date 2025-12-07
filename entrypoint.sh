@@ -3,8 +3,13 @@ set -e
 
 # 运行模式: scheduler (定时调度) / once (一次性运行)
 # 优先命令行参数，其次 RUN_MODE 环境变量，默认 scheduler
-MODE=${1:-${RUN_MODE:-scheduler}}
-SCRIPT=${2:-auto_checkin.py}
+MODE="${1:-${RUN_MODE:-scheduler}}"
+SCRIPT="${2:-auto_checkin.py}"
+
+# 确保 MODE 不为空
+if [ -z "$MODE" ]; then
+    MODE="scheduler"
+fi
 
 echo "🚀 启动容器"
 echo "📋 运行模式: $MODE"
