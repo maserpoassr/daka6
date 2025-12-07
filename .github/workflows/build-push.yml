@@ -34,6 +34,6 @@ jobs:
         context: .
         push: true
         tags: |
-          ghcr.io/${{ github.repository }}:v6
+          ghcr.io/${{ github.repository }}:v7
           ghcr.io/${{ github.repository }}:latest
           ghcr.io/${{ github.repository }}:${{ github.sha }}
